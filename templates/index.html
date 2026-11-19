@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block title %}Accessibility Auto-Audit & Repair Assistant — Instant WCAG Audit{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Hero Header -->
+    <div class="row justify-content-center text-center mb-5">
+        <div class="col-lg-8">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-semibold mb-3">
+                <i class="bi bi-shield-check me-1"></i> Automated WCAG 2.1 Audit & Code Remediation
+            </span>
+            <h1 class="display-5 fw-bold text-dark tracking-tight mb-3">
+                Make the Web Accessible for Everyone.
+            </h1>
+            <p class="lead text-muted mb-4">
+                Scan your web pages for accessibility violations in seconds. Get precise, actionable code snippets showing exactly how to fix each issue.
+            </p>
+
+            <!-- URL Submission Card -->
+            <div class="card card-custom p-4 shadow-sm border-0 mb-3">
+                <form action="{{ url_for('scan') }}" method="POST" id="scanForm" onsubmit="showLoading()">
+                    <div class="input-group input-group-lg mb-3">
+                        <span class="input-group-text bg-white border-end-0 text-muted ps-3">
+                            <i class="bi bi-globe2"></i>
+                        </span>
+                        <input type="text" 
+                               name="url" 
+                               id="urlInput"
+                               class="form-control border-start-0 ps-1" 
+                               placeholder="https://example.com" 
+                               aria-label="Target Website URL">
+                        <button class="btn btn-primary px-4 fw-semibold" type="submit" id="submitBtn">
+                            <i class="bi bi-play-fill me-1"></i> Run Accessibility Audit
+                        </button>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 text-muted small">
+                        <div>
+                            <i class="bi bi-lightning-charge text-warning"></i> Fast static DOM analysis (10 Core WCAG Rules)
+                        </div>
+                        <a class="text-decoration-none fw-medium text-primary" data-bs-toggle="collapse" href="#htmlInputCollapse">
+                            <i class="bi bi-code-slash me-1"></i> Or test custom HTML snippet directly
+                        </a>
+                    </div>
+
+                    <!-- Direct HTML Input Accordion (ideal for offline tests or unit evaluations) -->
+                    <div class="collapse mt-3 text-start" id="htmlInputCollapse">
+                        <div class="p-3 bg-light rounded-3 border">
+                            <label class="form-label fw-semibold text-dark small mb-1">Paste HTML Code to Audit:</label>
+                            <textarea name="custom_html" id="customHtml" class="form-control font-monospace" rows="5" placeholder="<!DOCTYPE html><html><head><title>Test</title></head><body><img src='test.jpg'><button></button></body></html>"></textarea>
+                            <div class="mt-2 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="loadSampleHtml()">
+                                    <i class="bi bi-file-earmark-code me-1"></i> Insert Sample Flawed HTML
+                                </button>
+                                <button type="submit" class="btn btn-sm btn-dark">
+                                    Audit HTML Snippet
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Loading State Overlay -->
+                <div id="loadingIndicator" class="d-none py-4 text-center">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                    <h5 class="fw-bold">Crawling Target & Inspecting DOM...</h5>
+                    <p class="text-muted small">Evaluating against 10 WCAG accessibility criteria and generating code fixes.</p>
+                </div>
+            </div>
+
+            <!-- Quick Demo URLs -->
+            <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap text-muted small">
+                <span>Try quick demos:</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2" onclick="setDemoUrl('https://example.com')">example.com</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2" onclick="setDemoUrl('https://w3.org')">w3.org</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-0 px-2" onclick="loadSampleHtmlAndSubmit()">Sample Violations Demo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- The 10 Evaluated WCAG Rules Section -->
+    <div class="row g-4 mt-2">
+        <div class="col-12 text-center mb-2">
+            <h3 class="fw-bold text-dark">Automated Rules Enforced</h3>
+            <p class="text-muted">The core engine inspects every element in the DOM tree against these 10 predefined accessibility rules:</p>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-01</span>
+                    <h6 class="mb-0 fw-bold">Missing Alt Text</h6>
+                </div>
+                <p class="text-muted small mb-0">Detects <code>&lt;img&gt;</code> tags missing alt attributes or with empty non-decorative descriptions.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-02</span>
+                    <h6 class="mb-0 fw-bold">Missing Page Title</h6>
+                </div>
+                <p class="text-muted small mb-0">Verifies that the document <code>&lt;head&gt;</code> contains a non-empty, descriptive <code>&lt;title&gt;</code>.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-03</span>
+                    <h6 class="mb-0 fw-bold">Missing Language Attribute</h6>
+                </div>
+                <p class="text-muted small mb-0">Confirms the root <code>&lt;html&gt;</code> tag defines a valid <code>lang</code> code for screen reader synthesis.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-04</span>
+                    <h6 class="mb-0 fw-bold">Missing Form Labels</h6>
+                </div>
+                <p class="text-muted small mb-0">Ensures inputs, textareas, and select menus have matching <code>&lt;label for&gt;</code> or aria labels.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-05</span>
+                    <h6 class="mb-0 fw-bold">Empty Buttons</h6>
+                </div>
+                <p class="text-muted small mb-0">Flags <code>&lt;button&gt;</code> elements that lack discernible text, aria-labels, or labeled icons.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-06</span>
+                    <h6 class="mb-0 fw-bold">Improper Heading Hierarchy</h6>
+                </div>
+                <p class="text-muted small mb-0">Checks <code>h1-h6</code> sequence for skipped levels (e.g. jumping h1 to h3) and missing h1 titles.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-07</span>
+                    <h6 class="mb-0 fw-bold">Non-Descriptive Anchor Text</h6>
+                </div>
+                <p class="text-muted small mb-0">Catches vague link anchors like "click here" or empty links with no discernible target context.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-08</span>
+                    <h6 class="mb-0 fw-bold">Missing ARIA Attributes</h6>
+                </div>
+                <p class="text-muted small mb-0">Identifies interactive elements with click triggers missing keyboard roles, tabindex, or aria states.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-09</span>
+                    <h6 class="mb-0 fw-bold">Accessibility HTML Errors</h6>
+                </div>
+                <p class="text-muted small mb-0">Detects duplicate <code>id</code> attributes across the DOM that break label bindings and ARIA references.</p>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4 mx-auto">
+            <div class="card card-custom p-3 h-100">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="p-2 bg-primary-subtle text-primary rounded-3 fw-bold">R-10</span>
+                    <h6 class="mb-0 fw-bold">Color Contrast Minimum</h6>
+                </div>
+                <p class="text-muted small mb-0">Calculates relative luminance of inline styles, verifying minimum 4.5:1 contrast for normal text.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function showLoading() {
+        document.getElementById('loadingIndicator').classList.remove('d-none');
+        document.getElementById('submitBtn').disabled = true;
+    }
+
+    function setDemoUrl(url) {
+        document.getElementById('urlInput').value = url;
+    }
+
+    const sampleFlawedHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <!-- Missing <title> (R-02) and Missing <html lang> (R-03) -->
+</head>
+<body>
+    <h1>Sample Accessible Web Page</h1>
+    
+    <!-- Skipped Heading Level h1 to h3 (R-06) -->
+    <h3>Section Without H2</h3>
+
+    <!-- Missing Alt Text (R-01) -->
+    <img src="banner.jpg">
+
+    <!-- Missing Form Label (R-04) -->
+    <input type="text" name="email" placeholder="Enter email">
+
+    <!-- Empty Button (R-05) -->
+    <button><i class="bi bi-trash"></i></button>
+
+    <!-- Non-descriptive Link (R-07) -->
+    <p>Read our policy <a href="/policy">click here</a>.</p>
+
+    <!-- Interactive div missing role/tabindex (R-08) -->
+    <div onclick="openMenu()">Clickable Dropdown</div>
+
+    <!-- Duplicate IDs (R-09) -->
+    <div id="duplicate-item">Item 1</div>
+    <div id="duplicate-item">Item 2</div>
+
+    <!-- Poor Color Contrast (R-10) -->
+    <p style="color: #999999; background-color: #ffffff;">Hard to read low contrast text.</p>
+</body>
+</html>`;
+
+    function loadSampleHtml() {
+        document.getElementById('customHtml').value = sampleFlawedHTML;
+    }
+
+    function loadSampleHtmlAndSubmit() {
+        const collapseEl = new bootstrap.Collapse(document.getElementById('htmlInputCollapse'), { show: true });
+        document.getElementById('customHtml').value = sampleFlawedHTML;
+        document.getElementById('urlInput').value = '';
+        setTimeout(() => {
+            document.getElementById('scanForm').submit();
+        }, 300);
+    }
+</script>
+{% endblock %}

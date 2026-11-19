@@ -1,0 +1,23 @@
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite Database & instance folder
+instance/
+*.db
+*.sqlite3
+
+# Environment & local secrets
+.env
+.env.local
+
+# Operating System Files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Results & Recommendations — {{ target_url }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Top Breadcrumb & Action Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Audit Report</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0 text-dark">
+                Accessibility Audit Report
+            </h2>
+            <div class="text-muted small mt-1">
+                Target: <span class="badge bg-light text-primary border font-monospace px-2 py-1">{{ target_url }}</span>
+                {% if scan_date %}
+                &bull; Scanned: {{ scan_date.strftime('%b %d, %Y %H:%M UTC') }}
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm px-3">
+                <i class="bi bi-arrow-left me-1"></i> New Audit
+            </a>
+
+            {% if scan_id %}
+            <a href="{{ url_for('download_saved_pdf', scan_id=scan_id) }}" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF Report
+            </a>
+            {% else %}
+            <a href="{{ url_for('download_guest_pdf') }}" class="btn btn-primary btn-sm px-3 fw-semibold shadow-sm">
+                <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF Report
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if is_guest %}
+    <div class="alert alert-info alert-dismissible fade show d-flex align-items-center gap-3 mb-4" role="alert">
+        <i class="bi bi-info-circle-fill fs-4 text-info"></i>
+        <div class="flex-grow-1">
+            <strong>Guest Audit Mode:</strong> This scan is not permanently saved. 
+            <a href="{{ url_for('register') }}" class="alert-link fw-semibold">Create a free account</a> or 
+            <a href="{{ url_for('login') }}" class="alert-link fw-semibold">log in</a> to store historical reports and monitor compliance trends over time.
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+
+    <!-- Score & Stats Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Main Score Gauge Card -->
+        <div class="col-lg-4 col-md-5">
+            <div class="card card-custom p-4 text-center h-100 d-flex flex-column justify-content-center">
+                <span class="text-uppercase tracking-wider text-muted fw-bold small mb-2">Overall Compliance Score</span>
+                <div class="display-3 fw-bolder text-{{ score_data.color }} mb-1">
+                    {{ score_data.total_score }}<span class="fs-4 text-muted">/100</span>
+                </div>
+                <div>
+                    <span class="badge bg-{{ score_data.color }}-subtle text-{{ score_data.color }} border border-{{ score_data.color }}-subtle px-3 py-1 rounded-pill fw-semibold">
+                        Grade {{ score_data.grade }} &bull; {{ score_data.status }}
+                    </span>
+                </div>
+                <div class="mt-3 text-muted small">
+                    Based on 10 standard WCAG 2.1 DOM evaluation rules.
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric Details Card -->
+        <div class="col-lg-8 col-md-7">
+            <div class="card card-custom p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3">Evaluation Summary</h6>
+                <div class="row g-3 text-center mb-3">
+                    <div class="col-4">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="fs-3 fw-bold text-success">{{ score_data.passed_rules }}</div>
+                            <div class="text-muted small">Rules Passed</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="fs-3 fw-bold text-danger">{{ score_data.failed_rules }}</div>
+                            <div class="text-muted small">Rules Failed</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 bg-light rounded-3">
+                            <div class="fs-3 fw-bold text-dark">{{ score_data.total_issues }}</div>
+                            <div class="text-muted small">Total Violations</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Severity Pills -->
+                <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+                    <span class="badge badge-severity-Critical py-2 px-3 rounded-pill fw-semibold">
+                        <i class="bi bi-shield-x me-1"></i> Critical: {{ score_data.severity_breakdown.Critical }}
+                    </span>
+                    <span class="badge badge-severity-High py-2 px-3 rounded-pill fw-semibold">
+                        <i class="bi bi-exclamation-octagon me-1"></i> High: {{ score_data.severity_breakdown.High }}
+                    </span>
+                    <span class="badge badge-severity-Medium py-2 px-3 rounded-pill fw-semibold">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Medium: {{ score_data.severity_breakdown.Medium }}
+                    </span>
+                    <span class="badge badge-severity-Low py-2 px-3 rounded-pill fw-semibold">
+                        <i class="bi bi-info-circle me-1"></i> Low: {{ score_data.severity_breakdown.Low }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rule Breakdown Checklist -->
+    <div class="card card-custom p-4 mb-4">
+        <h6 class="fw-bold text-dark mb-3 d-flex justify-content-between align-items-center">
+            <span>Rules Evaluation Matrix</span>
+            <span class="badge bg-secondary-subtle text-secondary small fw-normal">10 Automated Rules</span>
+        </h6>
+        <div class="row g-2">
+            {% for r in score_data.rule_status %}
+            <div class="col-md-6 col-lg-4">
+                <div class="p-2 border rounded-3 d-flex align-items-center justify-content-between {% if r.passed %}bg-white{% else %}bg-danger-subtle border-danger-subtle{% endif %}">
+                    <div class="d-flex align-items-center gap-2 overflow-hidden">
+                        {% if r.passed %}
+                        <i class="bi bi-check-circle-fill text-success flex-shrink-0"></i>
+                        {% else %}
+                        <i class="bi bi-x-circle-fill text-danger flex-shrink-0"></i>
+                        {% endif %}
+                        <span class="small fw-semibold text-truncate">{{ r.id }}: {{ r.name }}</span>
+                    </div>
+                    {% if not r.passed %}
+                    <span class="badge bg-danger rounded-pill flex-shrink-0">{{ r.issue_count }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Filter Buttons & Violations Section -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h4 class="fw-bold text-dark mb-0">
+            Detected Issues & Code Remediation
+        </h4>
+        <div class="btn-group btn-group-sm" role="group" id="filterButtonGroup">
+            <button type="button" class="btn btn-outline-secondary active" onclick="filterIssues('all', this)">All ({{ issues|length }})</button>
+            <button type="button" class="btn btn-outline-danger" onclick="filterIssues('Critical', this)">Critical</button>
+            <button type="button" class="btn btn-outline-warning text-dark" onclick="filterIssues('High', this)">High</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="filterIssues('Medium', this)">Medium</button>
+            <button type="button" class="btn btn-outline-info text-dark" onclick="filterIssues('Low', this)">Low</button>
+        </div>
+    </div>
+
+    {% if issues %}
+    <div class="vstack gap-3" id="issuesList">
+        {% for issue in issues %}
+        <div class="card card-custom p-4 issue-item border-start border-4 border-{% if issue.severity == 'Critical' %}danger{% elif issue.severity == 'High' %}warning{% elif issue.severity == 'Medium' %}info{% else %}primary{% endif %}" data-severity="{{ issue.severity }}">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2 flex-wrap">
+                <div>
+                    <span class="badge badge-severity-{{ issue.severity }} me-2 fw-semibold px-2 py-1 rounded-pill">
+                        {{ issue.severity }}
+                    </span>
+                    <span class="badge bg-secondary-subtle text-secondary font-monospace px-2 py-1">
+                        {{ issue.rule_id }}
+                    </span>
+                    <h5 class="fw-bold d-inline ms-2 text-dark">
+                        {{ issue.rule_name }}
+                    </h5>
+                </div>
+                <span class="text-muted small font-monospace">
+                    {{ issue.wcag }}
+                </span>
+            </div>
+
+            <p class="text-muted small mb-3">
+                <strong>Why this matters:</strong> {{ issue.explanation }}
+            </p>
+
+            <div class="row g-3">
+                <!-- Faulty Snippet -->
+                <div class="col-lg-6">
+                    <label class="form-label text-danger small fw-bold mb-1">
+                        <i class="bi bi-x-octagon me-1"></i> Offending HTML Snippet:
+                    </label>
+                    <div class="code-box">
+                        <code>{{ issue.element }}</code>
+                    </div>
+                </div>
+
+                <!-- Remediation Fix -->
+                <div class="col-lg-6">
+                    <label class="form-label text-success small fw-bold mb-1">
+                        <i class="bi bi-check-circle me-1"></i> Recommended Fix:
+                    </label>
+                    <div class="code-box">
+                        <button type="button" class="btn btn-sm btn-outline-light copy-btn" onclick="copyCode('fix-code-{{ loop.index }}', this)">
+                            <i class="bi bi-clipboard"></i> Copy Fix
+                        </button>
+                        <code id="fix-code-{{ loop.index }}">{{ issue.fix }}</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card card-custom p-5 text-center">
+        <i class="bi bi-check2-circle text-success display-1 mb-3"></i>
+        <h4 class="fw-bold text-dark">Congratulations! No Violations Found</h4>
+        <p class="text-muted mb-0">This web page meets all 10 evaluated WCAG 2.1 accessibility criteria.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterIssues(severity, btn) {
+        // Toggle active button style
+        document.querySelectorAll('#filterButtonGroup button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const items = document.querySelectorAll('.issue-item');
+        items.forEach(item => {
+            if (severity === 'all' || item.getAttribute('data-severity') === severity) {
+                item.classList.remove('d-none');
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+    }
+</script>
+{% endblock %}
